@@ -1,41 +1,30 @@
 <?php
 
-function botToken() {
-    $t = getenv('BOT_TOKEN');
-    if (!$t) { die("BOT_TOKEN missing"); }
-    return $t;
-}
-
 function apiRequest($method, $params = []) {
-    $url = "https://api.telegram.org/bot" . botToken() . "/" . $method;
+    $token = getenv("BOT_TOKEN");
+    if (!$token) return false;
 
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
+    $url = "https://api.telegram.org/bot{$token}/{$method}";
 
-    $res = curl_exec($ch);
-    if ($res === false) {
-        error_log("curl error: " . curl_error($ch));
-        curl_close($ch);
-        return null;
-    }
-    curl_close($ch);
+    $options = [
+        "http" => [
+            "header"  => "Content-Type: application/x-www-form-urlencoded\r\n",
+            "method"  => "POST",
+            "content" => http_build_query($params),
+            "timeout" => 30
+        ]
+    ];
 
-    $json = json_decode($res, true);
-    if (!is_array($json) || ($json["ok"] ?? false) !== true) {
-        error_log("Telegram API error: " . $res);
-    }
-    return $json;
+    $context  = stream_context_create($options);
+    $result = @file_get_contents($url, false, $context);
+    return $result ? json_decode($result, true) : false;
 }
 
-function sendMessage($chatId, $text, $replyToMessageId = null) {
-    $payload = [
+function sendMessage($chatId, $text) {
+    // لا parse_mode نهائياً (هذا يمنع خطأ Unsupported start tag)
+    return apiRequest("sendMessage", [
         "chat_id" => $chatId,
-        "text" => $text,
-        "parse_mode" => "HTML",
+        "text"    => $text,
         "disable_web_page_preview" => true
-    ];
-    if ($replyToMessageId) $payload["reply_to_message_id"] = $replyToMessageId;
-
-    return apiRequest("sendMessage", $payload);
+    ]);
 }
