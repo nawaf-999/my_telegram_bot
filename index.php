@@ -39,3 +39,49 @@ $contact = $messageData["contact"];
 $contact_id = $messageData["contact"]["file_id"];
 $photo = $messageData["photo"];
 $photo_id = $messageData["message"]["photo"][0]["file_id"];
+$text = trim(mb_strtolower($messageText));
+
+switch($text){
+
+    case "/start":
+    case "ابدأ":
+        sendMessage($chatId, "👋 أهلاً بك في بوت Nana 🤍
+
+اكتب (مساعدة) لرؤية الأوامر.");
+    break;
+
+    case "مساعدة":
+        sendMessage($chatId, "📋 الأوامر:
+
+ابدأ
+معلوماتي
+نقاطي
+العاب
+عن البوت");
+    break;
+
+    case "معلوماتي":
+        sendMessage($chatId, "👤 معلوماتك:
+
+الاسم: $from_name
+المعرف: @$from_username
+الآي دي: $from_id");
+    break;
+
+    case "نقاطي":
+        sendMessage($chatId, "🏆 نقاطك الحالية: 0");
+    break;
+
+    case "العاب":
+        sendMessage($chatId, "🎮 اكتب (تحدي) للعب لعبة سريعة!");
+    break;
+
+    case "تحدي":
+        $number = rand(1,5);
+        sendMessage($chatId, "🎯 خمن رقم من 1 إلى 5!");
+    break;
+
+    case "عن البوت":
+        sendMessage($chatId, "🤖 Nana Bot يعمل على Render 🚀");
+    break;
+}
