@@ -39,15 +39,18 @@ $contact = $messageData["contact"];
 $contact_id = $messageData["contact"]["file_id"];
 $photo = $messageData["photo"];
 $photo_id = $messageData["message"]["photo"][0]["file_id"];
-sendMessage($chatId, "البوت يعمل الآن 🔥");
 $text = trim(mb_strtolower($messageText));
 
 switch($text){
 
     case "/start":
     case "ابدأ":
-        sendMessage($chatId, "👋 أهلاً بك في بوت Nana 🤍
+case "/start":
+case "ابدأ":
+    sendMessage($chatId, "👋 أهلاً بك في بوت Nana 🤍
 
+اكتب (مساعدة) لرؤية الأوامر.");
+break;
 اكتب (مساعدة) لرؤية الأوامر.");
     break;
 
