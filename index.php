@@ -1,12 +1,8 @@
 <?php
-require_once "config.php";
-require_once "util.php";
+require_once __DIR__ . "/config.php";
+require_once __DIR__ . "/util.php";
 
-// Load plugins (optional)
-foreach (glob("Plugins/*.php") as $plugin) {
-    include_once $plugin;
-}
-
+// اقرأ تحديث تيليجرام
 $raw = file_get_contents("php://input");
 if (!$raw) {
     http_response_code(200);
@@ -14,103 +10,93 @@ if (!$raw) {
 }
 
 $update = json_decode($raw, true);
-if (!is_array($update)) {
+if (!$update) {
     http_response_code(200);
     exit("OK");
 }
 
-// Support message + callback_query
-$message = $update["message"] ?? ($update["callback_query"]["message"] ?? null);
+// استخرج الرسالة
+$message = $update["message"] ?? null;
 if (!$message) {
+    // تجاهل أي نوع آخر (callback_query وغيره) حالياً
     http_response_code(200);
     exit("OK");
 }
 
 $chatId = $message["chat"]["id"] ?? null;
-$messageId = $message["message_id"] ?? null;
-$text = $message["text"] ?? $message["caption"] ?? "";
-
-$from = $message["from"] ?? [];
-$fromId = $from["id"] ?? 0;
-$firstName = $from["first_name"] ?? "";
-$lastName  = $from["last_name"] ?? "";
-$fullName = trim($firstName . " " . $lastName);
-$username = $from["username"] ?? "";
+$text   = $message["text"] ?? "";
 
 if (!$chatId) {
     http_response_code(200);
     exit("OK");
 }
 
-// normalize arabic text
-$cmd = trim($text);
-$lower = mb_strtolower($cmd, "UTF-8");
+// تطبيع النص (عربي)
+$text = trim($text);
+$textLower = mb_strtolower($text, "UTF-8");
 
-// ✅ لا ترد على كل رسالة برسالة ثابتة (هذا سبب سبام ومشاكل)
-// الرد يكون حسب الأوامر فقط
-
-switch ($lower) {
+// أوامر البوت (عربي 100%)
+switch ($textLower) {
 
     case "/start":
     case "ابدأ":
     case "ابدا":
         sendMessage($chatId,
-"👋 أهلاً $fullName في <b>Nana</b> 🤍
+"👋 أهلًا بك في بوت Nana 🤍
+أنا بوت عربي للأوامر والنقاط والألعاب.
 
-اكتب: <b>مساعدة</b> لعرض الأوامر.");
+اكتب: مساعدة
+لعرض قائمة الأوامر.");
         break;
 
     case "مساعدة":
     case "help":
         sendMessage($chatId,
-"📋 <b>أوامر Nana</b>
+"📋 الأوامر المتاحة:
 
-• ابدأ
-• مساعدة
-• معلوماتي
-• نقاطي
-• العاب
-• عن البوت
-
-جرّب الآن: اكتب <b>معلوماتي</b>");
+ابدأ
+مساعدة
+معلوماتي
+نقاطي
+لعبة
+عن البوت");
         break;
 
     case "معلوماتي":
+        $first = $message["from"]["first_name"] ?? "";
+        $last  = $message["from"]["last_name"] ?? "";
+        $name  = trim($first . " " . $last);
+        $user  = $message["from"]["username"] ?? "";
+        $uid   = $message["from"]["id"] ?? "";
+
         sendMessage($chatId,
-"👤 <b>معلوماتك</b>
-• الاسم: $fullName
-• اليوزر: @" . ($username ?: "بدون") . "
-• الآيدي: <code>$fromId</code>");
+"👤 معلوماتك:
+الاسم: {$name}
+المعرف: @" . ($user ?: "بدون")
+ . "\nالآي دي: {$uid}");
         break;
 
     case "نقاطي":
-        // لاحقًا نخزنها بملف/DB — الآن ثابت
-        sendMessage($chatId, "🏆 نقاطك الحالية: <b>0</b>");
+        // حالياً ثابتة (نطورها لاحقاً)
+        sendMessage($chatId, "🏆 نقاطك الحالية: 0");
         break;
 
-    case "العاب":
-        sendMessage($chatId,
-"🎮 <b>الألعاب</b>
-اكتب: <b>تحدي</b> (تخمين رقم)");
-        break;
-
-    case "تحدي":
-        // لعبة بسيطة
-        $n = rand(1,5);
-        // نخزن الرقم في جلسة بسيطة (ملف) لو تبي — الآن نرسل تحدي فقط
-        sendMessage($chatId, "🎯 خمن رقم من 1 إلى 5 (اكتب رقم فقط)");
+    case "لعبة":
+        $n = rand(1, 5);
+        // نرسل التحدي ونخزن الرقم في الذاكرة لاحقاً (حالياً بس مثال)
+        sendMessage($chatId, "🎮 لعبة سريعة: خمن رقم من 1 إلى 5 (اكتب الرقم فقط).");
         break;
 
     case "عن البوت":
-        sendMessage($chatId, "🤖 Nana Bot شغال على Render ✅");
+        sendMessage($chatId, "🤖 Nana Bot يعمل على Render 🚀\nنسخة عربية تجريبية.");
         break;
 
     default:
-        // لو كتب رقم للتحدي أو كلام عام
-        if (preg_match('/^[1-5]$/', $lower)) {
-            sendMessage($chatId, "✅ استلمت رقمك: <b>$lower</b> (نطوّر اللعبة بعدين)");
+        // لو المستخدم كتب رقم
+        if (preg_match('/^[1-5]$/', $textLower)) {
+            sendMessage($chatId, "👍 استلمت اختيارك: {$textLower}\n(بنضيف نظام الفوز والخسارة قريباً)");
         } else {
-            sendMessage($chatId, "ما فهمت 🙃 اكتب <b>مساعدة</b>.");
+            sendMessage($chatId, "ما فهمت عليك 🤍\nاكتب: مساعدة");
         }
         break;
 }
