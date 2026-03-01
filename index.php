@@ -39,6 +39,7 @@ $contact = $messageData["contact"];
 $contact_id = $messageData["contact"]["file_id"];
 $photo = $messageData["photo"];
 $photo_id = $messageData["message"]["photo"][0]["file_id"];
+sendMessage($chatId, "البوت يعمل الآن 🔥");
 $text = trim(mb_strtolower($messageText));
 
 switch($text){
