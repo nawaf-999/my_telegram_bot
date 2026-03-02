@@ -40,7 +40,7 @@ function ai_chat($prompt, $ctx = []) {
     if ($code >= 400) {
         // عشان تشوف السبب باللوقس في Render
         error_log("AI error HTTP-{$code}: " . $res);
-        return "⚠️ صار خطأ في الذكاء الاصطناعي. تأكد من المفتاح في Render.";
+        return "AI ERROR:\n" . $res;
     }
 
     // Responses API output extraction
