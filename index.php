@@ -87,7 +87,7 @@ switch ($textLower) {
         break;
 
     case "عن البوت":
-        sendMessage($chatId, "🤖 Nana Bot يعمل على Render 🚀\nنسخة عربية تجريبية.");
+        sendMessage($chatId, "اي استفسار بخصوصي تقدر تواصل مع المنشئ @NTTIX .");
         break;
 
     default:
