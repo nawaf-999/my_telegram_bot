@@ -51,7 +51,7 @@ switch ($textLower) {
     case "مساعدة":
     case "help":
         sendMessage($chatId,
-" عيوني لك كيف اقد اساعدك "
+" عيوني لك كيف اقد اساعدك ");
         break;
   
 "📋 الأوامر المتاحة:
