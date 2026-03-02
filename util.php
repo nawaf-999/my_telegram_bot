@@ -1,33 +1,45 @@
 <?php
+require_once __DIR__ . "/config.php";
 
-function tgRequest($method, $payload = []) {
-    $token = getenv("BOT_TOKEN");
-    if (!$token) return ["ok" => false, "description" => "BOT_TOKEN not set"];
+function askAI($prompt) {
 
-    $url = "https://api.telegram.org/bot{$token}/{$method}";
+  $apiKey = getenv("OPENROUTER_API_KEY");
 
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+  if (!$apiKey) {
+    return ["ok" => false, "text" => "⚠️ ما تم ضبط مفتاح OpenRouter في Render."];
+  }
 
-    $res = curl_exec($ch);
-    $err = curl_error($ch);
-    curl_close($ch);
+  $url = "https://openrouter.ai/api/v1/chat/completions";
 
-    if ($err) return ["ok" => false, "description" => $err];
-    $json = json_decode($res, true);
-    return $json ?: ["ok" => false, "description" => "Bad JSON response", "raw" => $res];
-}
+  $body = [
+    "model" => "openchat/openchat-3.5-0106:free", // موديل مجاني
+    "messages" => [
+      ["role" => "system", "content" => "أنت مساعد عربي ذكي ومختصر."],
+      ["role" => "user", "content" => $prompt]
+    ]
+  ];
 
-function sendMessage($chatId, $text, $replyTo = null) {
-    // IMPORTANT: no parse_mode to avoid "can't parse entities"
-    $payload = [
-        "chat_id" => $chatId,
-        "text" => $text,
-        "disable_web_page_preview" => true,
-    ];
-    if ($replyTo) $payload["reply_to_message_id"] = $replyTo;
+  $ch = curl_init($url);
+  curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_HTTPHEADER => [
+      "Authorization: Bearer " . $apiKey,
+      "HTTP-Referer: https://your-render-url.onrender.com",
+      "Content-Type: application/json"
+    ],
+    CURLOPT_POSTFIELDS => json_encode($body),
+    CURLOPT_TIMEOUT => 20,
+  ]);
 
-    return tgRequest("sendMessage", $payload);
+  $res = curl_exec($ch);
+  curl_close($ch);
+
+  $json = json_decode($res, true);
+
+  if (!isset($json["choices"][0]["message"]["content"])) {
+    return ["ok" => false, "text" => "⚠️ صار خطأ من OpenRouter."];
+  }
+
+  return ["ok" => true, "text" => $json["choices"][0]["message"]["content"]];
 }
