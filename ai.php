@@ -1,54 +1,45 @@
 <?php
+require_once __DIR__ . "/config.php";
 
-function ai_chat($prompt, $ctx = []) {
-    $apiKey = getenv("OPENAI_API_KEY");
-    if (!$apiKey) return "⚠️ OPENAI_API_KEY غير موجود في Render Env.";
+function askAI($prompt) {
 
-    $model = getenv("OPENAI_MODEL") ?: "gpt-4o-mini";
+  $apiKey = getenv("OPENROUTER_API_KEY");
 
-    $system = "أنت مساعد عربي ذكي داخل بوت تيليجرام اسمه Nana.
-- ردودك عربية وواضحة ومختصرة.
-- إذا السؤال عن نقاط/ألعاب قل: اكتب (مساعدة) للأوامر.
-- لا تذكر مفاتيح أو أسرار.
-- إذا ما فهمت اسأل سؤال واحد للتوضيح.";
+  if (!$apiKey) {
+    return ["ok" => false, "text" => "⚠️ ما تم ضبط مفتاح OpenRouter في Render."];
+  }
 
-    $payload = [
-        "model" => $model,
-        "input" => [
-            ["role" => "system", "content" => $system],
-            ["role" => "user", "content" => $prompt],
-        ],
-    ];
+  $url = "https://openrouter.ai/api/v1/chat/completions";
 
-    $ch = curl_init("https://api.openai.com/v1/responses");
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "Authorization: Bearer {$apiKey}",
-        "Content-Type: application/json",
-    ]);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload, JSON_UNESCAPED_UNICODE));
+  $body = [
+    "model" => "openchat/openchat-3.5-0106:free", // موديل مجاني
+    "messages" => [
+      ["role" => "system", "content" => "أنت مساعد عربي ذكي ومختصر."],
+      ["role" => "user", "content" => $prompt]
+    ]
+  ];
 
-    $res = curl_exec($ch);
-    $err = curl_error($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+  $ch = curl_init($url);
+  curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_HTTPHEADER => [
+      "Authorization: Bearer " . $apiKey,
+      "HTTP-Referer: https://your-render-url.onrender.com",
+      "Content-Type: application/json"
+    ],
+    CURLOPT_POSTFIELDS => json_encode($body),
+    CURLOPT_TIMEOUT => 20,
+  ]);
 
-    if ($err) return "⚠️ صار خطأ في الاتصال بالذكاء الاصطناعي. ({$err})";
-    $json = json_decode($res, true);
+  $res = curl_exec($ch);
+  curl_close($ch);
 
-    if ($code >= 400) {
-        // عشان تشوف السبب باللوقس في Render
-        error_log("AI error HTTP-{$code}: " . $res);
-        return "AI ERROR:\n" . $res;
-    }
+  $json = json_decode($res, true);
 
-    // Responses API output extraction
-    $text = $json["output"][0]["content"][0]["text"] ?? null;
-    if (!$text) {
-        return "⚠️ ما قدرت أطلع رد من الذكاء الاصطناعي.";
-    }
+  if (!isset($json["choices"][0]["message"]["content"])) {
+    return ["ok" => false, "text" => "⚠️ صار خطأ من OpenRouter."];
+  }
 
-    // مهم: نخليها plain text بدون تنسيق
-    return trim($text);
+  return ["ok" => true, "text" => $json["choices"][0]["message"]["content"]];
 }
